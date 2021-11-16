@@ -1,5 +1,5 @@
-// Function to build github-proof readmes that contain the package's API
-// docs as HTML.
+// Function to build github-proof readmes that contain the package's API docs as HTML.
+
 
 const {core, nonCore} = require("./packages")
 const {gather, gatherMany} = require("getdocs-ts")
