@@ -1,29 +1,16 @@
 const fs = require("fs"), {join} = require("path")
 
 exports.core = [
-  "text",
   "state",
-  "rangeset",
   "view",
   "language",
   "commands",
-  "panel",
-  "tooltip",
-  "history",
-  "gutter",
+  "search",
+  "autocomplete",
+  "lint",
   "collab",
   "language-data",
-  "fold",
-  "matchbrackets",
-  "closebrackets",
-  "search",
-  "lint",
-  "highlight",
-  "stream-parser",
-  "autocomplete",
-  "comment",
-  "rectangular-selection",
-  "basic-setup"
+  "codemirror",
 ]
 exports.nonCore = [
   "lang-javascript",
@@ -33,6 +20,7 @@ exports.nonCore = [
   "lang-php",
   "lang-python",
   "lang-css",
+  "lang-sass",
   "lang-html",
   "lang-sql",
   "lang-rust",
@@ -40,8 +28,12 @@ exports.nonCore = [
   "lang-markdown",
   "lang-lezer",
   "lang-wast",
+  "lang-angular",
+  "lang-vue",
+  "lang-less",
   "legacy-modes",
-  "theme-one-dark"
+  "theme-one-dark",
+  "merge"
 ]
 
 exports.all = exports.core.concat(exports.nonCore)

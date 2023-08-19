@@ -20,7 +20,7 @@ function start() {
     build,
     devserver,
     release,
-    "release-major": releaseMajor,
+    unreleased,
     install,
     clean,
     commit,
@@ -42,7 +42,8 @@ function help(status) {
   cm status               Output git status, when interesting, for packages
   cm build                Build the bundle files
   cm clean                Delete files created by the build
-  cm devserver            Start a dev server on port 8090
+  cm devserver [--source-map]
+                          Start a dev server on port 8090
   cm release <package> [--edit] [--version <version>]
                           Create commits to tag a release
   cm build-readme <pkg>   Regenerate the readme file for a non-core package
@@ -85,7 +86,7 @@ function install(arg = null) {
     if (fs.existsSync(pkg.dir)) {
       console.warn(`Skipping cloning of ${pkg.name} (directory exists)`)
     } else {
-      let origin = base + pkg.name + ".git"
+      let origin = base + (pkg.name == "codemirror" ? "basic-setup" : pkg.name) + ".git"
       run("git", ["clone", origin, pkg.dir])
     }
   }
@@ -113,17 +114,21 @@ function status() {
 async function build() {
   console.info("Building...")
   let t0 = Date.now()
-  await require("@codemirror/buildhelper").build(buildPackages.map(p => p.main))
+  await require("@marijn/buildtool").build(buildPackages.map(p => p.main), require("@codemirror/buildhelper/src/options").options)
   console.info(`Done in ${((Date.now() - t0) / 1000).toFixed(2)}s`)
 }
 
 function startServer() {
   let serve = join(root, "demo")
   let moduleserver = new (require("esmoduleserve/moduleserver"))({root: serve, maxDepth: 2})
-  let serveStatic = require("serve-static")(serve)
+  let serveStatic = require("serve-static")(serve, {
+    setHeaders(res, path) {
+      if (/try\/mods\//.test(path)) res.setHeader("Access-Control-Allow-Origin", "*")
+    }
+  })
   require("http").createServer((req, resp) => {
     if (/^\/test\/?($|\?)/.test(req.url)) {
-      let runTests = require("@codemirror/buildhelper/src/runtests")
+      let runTests = require("@marijn/testtool")
       let {browserTests} = runTests.gatherTests(buildPackages.map(p => p.dir))
       resp.writeHead(200, {"content-type": "text/html"})
       resp.end(runTests.testHTML(browserTests.map(f => path.relative(serve, f)), false))
@@ -137,13 +142,17 @@ function startServer() {
   console.log("Dev server listening on 8090")
 }
 
-function devserver() {
-  require("@codemirror/buildhelper").watch(buildPackages.map(p => p.main).filter(f => f), [join(root, "demo/demo.ts")])
+function devserver(...args) {
+  let options = {
+    sourceMap : args.includes('--source-map'),
+    ...require("@codemirror/buildhelper/src/options").options
+  }
+  require("@marijn/buildtool").watch(buildPackages.map(p => p.main).filter(f => f), [join(root, "demo/demo.ts")], options)
   startServer()
 }
 
 function changelog(pkg, since) {
-  let commits = run("git", ["log", "--format=%B", "--reverse", since + "..main"], pkg.dir)
+  let commits = run("git", ["log", "--format=%B%n", "--reverse", since + "..main"], pkg.dir)
   let result = {fix: [], feature: [], breaking: []}
   let re = /\n\r?\n(BREAKING|FIX|FEATURE):\s*([^]*?)(?=\r?\n\r?\n|\r?\n?$)/g, match
   while (match = re.exec(commits)) result[match[1].toLowerCase()].push(match[2].replace(/\r?\n/g, " "))
@@ -165,7 +174,7 @@ function releaseNotes(changes, version) {
 
   let types = {breaking: "Breaking changes", fix: "Bug fixes", feature: "New features"}
 
-  let refTarget = "https://codemirror.net/6/docs/ref/"
+  let refTarget = "https://codemirror.net/docs/ref/"
   let head = `## ${version} (${date})\n\n`, body = ""
   for (let type in types) {
     let messages = changes[type]
@@ -199,16 +208,6 @@ function updateDependencyVersion(pkg, version) {
   return changed
 }
 
-function updateAllDependencyVersions(version) {
-  for (let pkg of packages) {
-    let pkgFile = join(pkg.dir, "package.json"), text = fs.readFileSync(pkgFile, "utf8")
-    let updated = text.replace(/("@codemirror\/[^"]+": ")([^"]+)"/g, (_, m, old) => {
-      return m + (/buildhelper/.test(m) ? old : "^" + version) + '"'
-    })
-    fs.writeFileSync(pkgFile, updated)
-  }
-}
-
 function version(pkg) {
   return require(join(pkg.dir, "package.json")).version
 }
@@ -228,7 +227,9 @@ function release(...args) {
 
   let {changes, newVersion} = doRelease(pkg, setVersion, {edit})
 
-  if (mainVersion.exec(newVersion)[0] != mainVersion.exec(version(pkg))[0]) {
+  // Turned off for now, since this creates a huge mess on accidental
+  // major version bumps. Maybe add a manual utility for it?
+  if (false && mainVersion.exec(newVersion)[0] != mainVersion.exec(version(pkg))[0]) {
     let updated = updateDependencyVersion(pkg, newVersion)
     if (updated.length) console.log(`Updated dependencies in ${updated.map(p => p.name).join(", ")}`)
   }
@@ -257,15 +258,6 @@ function doRelease(pkg, newVersion, {edit = false, defaultChanges = null}) {
   return {changes, newVersion}
 }
 
-function releaseMajor() {
-  let versions = packages.map(version), prev = Math.max(...versions.map(v => +v.split(".")[1]))
-  let newVersion = `0.${prev + 1}.0`
-  updateAllDependencyVersions(newVersion)
-  for (let pkg of packages) doRelease(pkg, newVersion, {
-    defaultChanges: {fix: [], feature: [], breaking: ["Update dependencies to " + newVersion]}
-  })
-}
-
 function editReleaseNotes(notes) {
   let noteFile = join(root, "notes.txt")
   fs.writeFileSync(noteFile, notes.head + notes.body)
@@ -275,6 +267,14 @@ function editReleaseNotes(notes) {
   if (!/\S/.test(edited)) process.exit(0)
   let split = /^(.*)\n+([^]*)/.exec(edited)
   return {head: split[1] + "\n\n", body: split[2]}
+}
+
+function unreleased() {
+  for (let pkg of packages) {
+    let ver = version(pkg), changes = changelog(pkg, ver)
+    if (changes.fix.length || changes.feature.length || changes.breaking.length)
+      console.log(pkg.name + ":\n\n", releaseNotes(changes, ver).body)
+  }
 }
 
 function clean() {
@@ -289,10 +289,10 @@ function commit(...args) {
   }
 }
 
-function push() {
+function push(...args) {
   for (let pkg of packages) {
     if (/\bahead\b/.test(run("git", ["status", "-sb"], pkg.dir)))
-      run("git", ["push"], pkg.dir)
+      run("git", ["push", ...args], pkg.dir)
   }
 }
 
@@ -340,7 +340,7 @@ function buildReadme(name) {
 }
 
 function test(...args) {
-  let runTests = require("@codemirror/buildhelper/src/runtests")
+  let runTests = require("@marijn/testtool")
   let {tests, browserTests} = runTests.gatherTests(buildPackages.map(p => p.dir))
   let browsers = [], grep, noBrowser = false
   for (let i = 0; i < args.length; i++) {

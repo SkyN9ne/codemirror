@@ -1,7 +1,7 @@
 // Function to build github-proof readmes that contain the package's API docs as HTML.
 
 
-const {core, nonCore} = require("./packages")
+const {core} = require("./packages")
 const {gather, gatherMany} = require("getdocs-ts")
 const {build, browserImports} = require("builddocs")
 const {join} = require("path"), fs = require("fs")
@@ -9,10 +9,12 @@ const {join} = require("path"), fs = require("fs")
 exports.buildReadme = function(pkg) {
   let imports = [type => {
     let sibling = type.typeSource && core.find(name => type.typeSource.startsWith("../" + name + "/"))
-    if (sibling) return "https://codemirror.net/6/docs/ref#" + sibling + "." + type.type
+    if (sibling) return "https://codemirror.net/docs/ref#" + sibling + "." + type.type
   }, type => {
-    if (/\blezer[\/-]tree\b/.test(type.typeSource)) return `https://lezer.codemirror.net/docs/ref/#tree.${type.type}`
-    if (/\blezer\b/.test(type.typeSource)) return `https://lezer.codemirror.net/docs/ref/#lezer.${type.type}`
+    if (/\blezer\/tree\b/.test(type.typeSource)) return `https://lezer.codemirror.net/docs/ref/#tree.${type.type}`
+    if (/\blezer\/common\b/.test(type.typeSource)) return `https://lezer.codemirror.net/docs/ref/#common.${type.type}`
+    if (/\blezer\/lr\b/.test(type.typeSource)) return `https://lezer.codemirror.net/docs/ref/#lr.${type.type}`
+    if (/\blezer\/markdown\b/.test(type.typeSource)) return `https://github.com/lezer-parser/markdown#user-content-${type.type.toLowerCase()}`
     if (/\bstyle-mod\b/.test(type.typeSource)) return "https://github.com/marijnh/style-mod#documentation"
   }, browserImports]
 
@@ -35,7 +37,7 @@ exports.buildReadme = function(pkg) {
     }
     template += "\n$$$"
   } else {
-    let placeholders = /\n@[^]*@\w+|\n@\w+/.exec(template)
+    let placeholders = /(^|\n)@[^]*@\w+|\n@\w+/.exec(template)
     html = build({
       mainText: placeholders[0],
       name: pkg.name,
@@ -50,7 +52,7 @@ exports.buildReadme = function(pkg) {
     .replace(/id="(.*?)"/g, (_, id) => `id="user-content-${id.toLowerCase()}"`)
     .replace(/href="#(.*?)"/g, (_, id) => {
       let first = /^[^^.]*/.exec(id)[0]
-      if (core.includes(first)) return `href="https://codemirror.net/6/docs/ref/#${id}"`
+      if (core.includes(first)) return `href="https://codemirror.net/docs/ref/#${id}"`
       if (first == pkg.name && id.length > first.length) id = id.slice(first.length + 1)
       return `href="#user-content-${id.toLowerCase()}"`
     })

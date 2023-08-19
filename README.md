@@ -1,8 +1,10 @@
 # CodeMirror
 
-[![Build Status](https://github.com/codemirror/codemirror.next/workflows/main/badge.svg)](https://github.com/codemirror/codemirror.next/actions)
+[![Build Status](https://github.com/codemirror/dev/workflows/main/badge.svg)](https://github.com/codemirror/codemirror.next/actions)
 
-This is the central repository for [CodeMirror 6](https://codemirror.net/6). It holds the bug tracker and development scripts.
+This is the central repository for [CodeMirror](https://codemirror.net/). It holds the bug tracker and development scripts.
+
+If you want to **use** CodeMirror, install the separate packages from npm, and ignore the contents of this repository. If you want to **develop on** CodeMirror, this repository provides scripts to install and work with the various packages.
 
 To get started, make sure you are running [node.js](https://nodejs.org/) version 16. After cloning the repository, run
 
@@ -16,6 +18,6 @@ Developing is best done by setting up
 
     npm run dev
 
-which starts a server that automatically rebuilds the packages when their code changes and exposes a dev server on port 8090 running the [demo](http://localhost:8090) and [browser tests](http://localhost:8090/test).
+which starts a server that automatically rebuilds the packages when their code changes and exposes a dev server on port 8090 running the [demo](http://localhost:8090) and [browser tests](http://localhost:8090/test/).
 
-Please see [the website](https://codemirror.net/6/) for more information and [docs](https://codemirror.net/6/docs/ref).
+Please see [the website](https://codemirror.net/) for more information and [docs](https://codemirror.net/docs/ref).
