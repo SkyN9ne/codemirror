@@ -21,6 +21,7 @@ package-lock.json
 /lang-json
 /lang-cpp
 /lang-python
+/lang-go
 /lang-css
 /lang-html
 /lang-php
@@ -32,9 +33,11 @@ package-lock.json
 /lang-wast
 /lang-angular
 /lang-vue
+/lang-liquid
 /lang-sass
 /lang-jinja2
 /lang-less
+/lang-yaml
 /legacy-modes
 /theme-one-dark
 .tern-*

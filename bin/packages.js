@@ -19,6 +19,7 @@ exports.nonCore = [
   "lang-cpp",
   "lang-php",
   "lang-python",
+  "lang-go",
   "lang-css",
   "lang-sass",
   "lang-html",
@@ -30,7 +31,9 @@ exports.nonCore = [
   "lang-wast",
   "lang-angular",
   "lang-vue",
+  "lang-liquid",
   "lang-less",
+  "lang-yaml",
   "legacy-modes",
   "theme-one-dark",
   "merge"
